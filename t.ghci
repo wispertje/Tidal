@@ -1,0 +1,3 @@
+:set -XOverloadedStrings
+import Sound.Tidal.Context
+putStrLn ("tidal OK, events: " ++ show (length (queryArc (s "bd sn") (Arc 0 1))))

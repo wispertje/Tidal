@@ -1,0 +1,140 @@
+-- ============================================================
+-- 0. SETUP: run this block first (tempo + sounds)
+--    To swap an instrument, change it here and re-run this block,
+--    then re-run whatever section is playing.
+-- ============================================================
+setcps (130/60/4)
+
+let kickSnd    = s "bd:3" # gain 1
+    hatSnd     = s "hh27:4" # gain 1
+    hat16Snd   = s "hh27" # gain 1
+    openhatSnd = s "808oh" # gain 1
+    clapSnd    = s "cp" # gain 1
+    snareSnd   = s "sn" # gain 1
+    subSnd     = s "supersaw" # gain 1
+    bassSnd    = s "jvbass" # gain 1
+    leadSnd    = s "jvbass" # gain 1
+    percHiSnd  = s "808hc" # gain 1
+    percLoSnd  = s "808lc" # gain 1
+
+-- Alternative kit: run this instead to switch to the TR-909
+-- let kickSnd    = s "rolandtr909bd" # gain 1
+--     hatSnd     = s "rolandtr909hh" # gain 1
+--     hat16Snd   = s "rolandtr909hh" # gain 1
+--     openhatSnd = s "rolandtr909oh" # gain 1
+--     clapSnd    = s "rolandtr909cp" # gain 1
+--     snareSnd   = s "rolandtr909sd" # gain 1
+--     subSnd     = s "supersaw" # gain 1
+--     bassSnd    = s "jvbass" # gain 1
+--     leadSnd    = s "jvbass" # gain 1
+--     percHiSnd  = s "rolandtr909rd" # gain 1
+--     percLoSnd  = s "rolandtr909lt" # gain 1
+
+hush
+
+-- 1. INTRO: kick + hats
+do
+  d1 $ struct "t*4" kickSnd |* gain 1.1
+  d2 $ struct "~ t ~ t" hatSnd |* gain 0.9
+
+-- 2. GROOVE: add rumble, offbeat open hat, 16th hats
+do
+  d3 $ struct "t*4" kickSnd # lpf 150 # room 0.9 # size 0.9 |* gain 1 # orbit 1
+  d4 $ struct "~ t ~ t" openhatSnd |* gain 0.75 # cut 1
+  d5 $ degradeBy 0.3 $ struct "t*16" hat16Snd |* gain (range 0.6 0.85 rand) # pan rand
+
+-- 3. BASS: offbeat bass + clap
+do
+  d6 $ n "~ a1 ~ a1" # subSnd # lpf 350 # legato 0.4 |* gain 0.9
+  d7 $ struct "~ t" clapSnd # room 0.3 # size 0.6 # orbit 2 |* gain 0.7
+
+-- 4. ACID LINE
+d8 $ note "~ 0 ~ 0 ~ 0 ~ [0 12]" # bassSnd # cut 2 # lpf 1200 |* gain 0.9
+
+-- 5. BREAKDOWN: kick and bass out, lead melody in
+do
+  d1 silence
+  d3 silence
+  d6 silence
+  d8 silence
+  d5 $ degradeBy 0.3 $ struct "t*16" hat16Snd |* gain (range 0.5 0.75 rand) # pan rand # hpf 4000
+  d7 $ struct "~ t" clapSnd # room 0.6 # size 0.8 # orbit 2
+  d9 $ struct "t(3,8,2)" $ note "<12 12 15 10>" # leadSnd # cut 3
+     # hpf 400 |* gain 0.8
+     # delay 0.4 # delaytime (3/16) # delayfeedback 0.5 # lock 1
+     # orbit 4
+
+-- 6. BUILD-UP: snare roll + riser
+do
+  d10 $ struct "t*<4 8 16 32>" snareSnd |* gain (slow 4 $ range 0.6 1.1 saw) # speed (slow 4 $ range 1 2 saw)
+  d11 $ struct "t*16" hat16Snd # speed (slow 4 $ range 1 4 saw) |* gain 0.7
+
+-- 7. DROP: everything back, simple
+do
+  d9 silence
+  d10 silence
+  d11 silence
+  d2 silence
+  d6 silence
+  d1 $ whenmod 16 15 (# gain 0) $ struct "t*4" kickSnd |* gain 1.1
+  d3 $ whenmod 16 15 (# gain 0) $ struct "t*4" kickSnd
+    # lpf 150 # room 0.9 # size 0.9 |* gain 0.8 # orbit 1
+  d4 $ struct "~ t ~ t" openhatSnd |* gain 0.75 # cut 1
+  d5 $ struct "t*8" hat16Snd |* gain 0.7
+  d7 $ struct "~ t" clapSnd # room 0.05 # size 0.1 # orbit 2
+  d8 $ note "~ 0 ~ 0 ~ 0 ~ [0 12]" # bassSnd # cut 2
+     # lpf (range 800 2000 $ slow 8 sine) |* gain 0.9
+
+hush
+
+
+-- ============================================================
+-- FULL ARRANGEMENT (plays the whole track by itself)
+-- ============================================================
+do
+  resetCycles
+  let kick       = struct "t*4" kickSnd |* gain 1.1
+      kickDrop   = whenmod 16 15 (# gain 0) $ kick
+      rumble     = struct "t*4" kickSnd # lpf 150 # room 0.9 # size 0.9 |* gain 0.8 # orbit 1
+      rumbleDrop = whenmod 16 15 (# gain 0) $ rumble
+      hats       = struct "~ t ~ t" hatSnd |* gain 0.9
+      openhat    = struct "~ t ~ t" openhatSnd |* gain 0.75 # cut 1
+      hats16     = degradeBy 0.3 $ struct "t*16" hat16Snd |* gain (range 0.6 0.85 rand) # pan rand
+      hatsAir    = degradeBy 0.3 $ struct "t*16" hat16Snd |* gain (range 0.5 0.75 rand) # pan rand # hpf 4000
+      hats8      = struct "t*8" hat16Snd |* gain 0.7
+      clap       = struct "~ t" clapSnd # room 0.3 # size 0.6 # orbit 2
+      clapBig    = struct "~ t" clapSnd # room 0.6 # size 0.8 # orbit 2
+      bass       = note "~ 0 ~ 0 ~ 0 ~ [0 12]" # bassSnd # cut 2 # lpf (range 800 2000 $ slow 8 sine) |* gain 0.9
+      perc       = stack [ struct "t(3,8,2)" percHiSnd # pan 0.7
+                         , struct "t(5,8)"   percLoSnd # pan 0.3 ] |* gain 0.7
+      melody     = struct "t(3,8,2)" $ note "<12 12 15 10>" # leadSnd # cut 3 # hpf 400 |* gain 0.8 # delay 0.4 # delaytime (3/16) # delayfeedback 0.5 # lock 1 # orbit 4
+      melody2    = struct "t(5,8)" $ note "<12 15 17 15>" # leadSnd # cut 3 # hpf 400 |* gain 0.8 # delay 0.5 # delaytime (3/16) # delayfeedback 0.6 # lock 1 # orbit 4
+      melodyDrop = melody2 |* gain 0.75
+      snareRoll  = struct "t*<4 8 16 32>" snareSnd |* gain (slow 4 $ range 0.6 1.1 saw)
+      riser      = struct "t*16" hat16Snd # speed (slow 4 $ range 1 4 saw) |* gain 0.7
+      -- PARTS: which instruments play in each part
+      intro      = stack [kick, hats]
+      groove     = stack [kick, rumble, hats, openhat, hats16]
+      bassIn     = stack [kick, rumble, hats, openhat, hats16, clap, bass]
+      breakdown  = stack [hats, openhat, hatsAir, clapBig, melody]
+      buildUp    = stack [hats, openhat, hatsAir, melody, snareRoll, riser]
+      drop1      = stack [kickDrop, rumbleDrop, openhat, hats8, clap, bass]
+      drop1b     = stack [kickDrop, rumbleDrop, openhat, hats8, clap, bass, perc]
+      breakdown2 = stack [clapBig, perc, melody2]
+      buildUp2   = stack [melody2, snareRoll, riser]
+      drop2      = stack [kickDrop, rumbleDrop, openhat, hats8, clap, bass, perc, melodyDrop]
+      outro      = stack [kickDrop, hats]
+  -- SONG: parts in order (start cycle, end cycle, part)
+  d1 $ seqP
+    [ (0,   8,   intro)
+    , (8,   16,  groove)
+    , (16,  32,  bassIn)
+    , (32,  44,  breakdown)
+    , (44,  48,  buildUp)
+    , (48,  64,  drop1)
+    , (64,  80,  drop1b)
+    , (80,  92,  breakdown2)
+    , (92,  96,  buildUp2)
+    , (96,  112, drop2)
+    , (112, 120, outro)
+    ]

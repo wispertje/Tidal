@@ -1,0 +1,19 @@
+# Audio renders / recordings
+*.wav
+*.aiff
+*.aif
+*.flac
+*.mp3
+recordings/
+
+# Haskell / GHC artifacts
+*.hi
+*.o
+dist-newstyle/
+.ghc.environment.*
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
