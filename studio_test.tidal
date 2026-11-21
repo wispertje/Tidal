@@ -1,0 +1,25 @@
+-- Welcome to TidalStudio
+--   Shift+Enter  run the current line        Ctrl+Enter  run the block (or selection)
+--   Ctrl+.  or  Ctrl+Alt+H  hush            Ctrl+1..9   mute / unmute d1..d9
+-- Playing parts of the mini-notation light up while they sound.
+-- Add a comment like  -- _punchcard  to a block to see an inline visual for it.
+
+setcps (130/60/4)
+
+d1 $ s "bd*4" # gain 1.0
+  -- _punchcard
+  
+d1 silence
+
+d2 $ s "hh*8" # lpf 800
+  -- _punchcard cycles=2
+
+d3 $ n "0 [3 7] <5 10> 12" # s "superpiano"
+  # color "blue"
+  -- _pianoroll cycles=2
+
+
+d1 $ note "0 3 7 <5 8>" # s "pluck_basic" # cut 1
+
+
+hush

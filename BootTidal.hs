@@ -2,15 +2,46 @@
 :set prompt ""
 
 import Sound.Tidal.Context
+import Sound.Tidal.ID (ID)
+import qualified Data.Map.Strict as TSMap
+import Data.List (intercalate)
 
 import System.IO (hSetEncoding, stdout, utf8)
 hSetEncoding stdout utf8
 
-tidal <- startTidal (superdirtTarget {oLatency = 0.05, oAddress = "127.0.0.1", oPort = 57120}) (defaultConfig {cVerbose = True, cFrameTimespan = 1/20})
+-- TidalStudio: events are also sent to the editor on port 57130 so it can draw visuals.
+-- Nothing breaks when the editor isn't running (UDP to a closed port is simply dropped).
+:{
+let tsSuperDirt = superdirtTarget {oLatency = 0.05, oAddress = "127.0.0.1", oPort = 57120}
+    tsEditor = superdirtTarget {oName = "TidalStudio", oLatency = 0.05, oAddress = "127.0.0.1", oPort = 57130, oHandshake = False}
+:}
+
+tidal <- startStream (defaultConfig {cVerbose = True, cFrameTimespan = 1/20}) [(tsSuperDirt, [superdirtShape]), (tsEditor, [superdirtShape])]
+
+-- TidalStudio: mini-notation highlighting. The editor wraps string literals in (tsctx <id> "...");
+-- tsVis copies each event's source positions into a "_ctx" parameter the editor can read.
+:{
+class TsCtx a where
+  tsctx :: Int -> a -> a
+instance TsCtx (Pattern a) where
+  tsctx i = deltaContext 0 i
+instance TsCtx [c] where
+  tsctx _ = id
+instance TsCtx ID where
+  tsctx _ = id
+:}
+
+:{
+let tsEncodeCtx c = intercalate ";" [show sc ++ "," ++ show sl ++ "," ++ show ec ++ "," ++ show el | ((sc, sl), (ec, el)) <- contextPosition c]
+    tsVis :: ControlPattern -> ControlPattern
+    tsVis = withEvent (\e -> e {value = TSMap.insert "_ctx" (VS $ tsEncodeCtx (context e)) (value e)})
+    color = pS "color"
+    colour = pS "color"
+:}
 
 :{
 let only = (hush >>)
-    p = streamReplace tidal
+    p i = streamReplace tidal i . tsVis
     hush = streamHush tidal
     panic = do hush
                once $ sound "superpanic"

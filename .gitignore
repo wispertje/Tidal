@@ -12,6 +12,9 @@ recordings/
 dist-newstyle/
 .ghc.environment.*
 
+# Claude Code personal settings
+.claude/settings.local.json
+
 # Editor / OS
 .vscode/*
 !.vscode/extensions.json

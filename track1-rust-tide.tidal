@@ -1,0 +1,106 @@
+-- ============================================================================
+-- RUST TIDE  ·  acid techno  ·  130 bpm  ·  C minor  ·  128 cycles (≈ 4 minutes)
+-- ============================================================================
+-- Every sound comes from the Tidepool factory presets (Synth ▸ Render all factory presets to samples):
+--   Drums  "Acid techno · warehouse" kit (acidwhbd, acidwhcp, acidwhhh, acidwhoh …) + acidrumblerb
+--   Acid   acidwarehouse, acidscreamer, aciddub  (each n 0..6 = pattern A..G, rendered at 130 bpm)
+--   Synth  technostab, hoover          FM  fmmetal
+--
+-- 1. Run setcps.   2. Run the big "do" block: the whole track plays by itself and starts again after
+--    cycle 128.   3. hush to stop.
+--
+--   cycle   0  intro       kick, then hats and the rumble
+--          16  groove      clap, acid line A
+--          32  groove 2    acid line B, percussion, stabs
+--          48  breakdown   no kick: dub acid, hoover chords
+--          56  build       snare roll, the kick comes back filtered
+--          64  peak        screamer acid, open hats, crash
+--          80  peak 2      + stabs
+--          96  roll        two-bar acid line G, ride
+--         112  outro       strip down, the filter closes
+
+setcps (130/60/4)
+
+do
+  setCycle 64
+  let arrange ps = seqPLoop ((0, 128, silence) : ps)
+      -- one-bar and two-bar loops from Tidepool Acid (chop keeps them in time if you change the tempo)
+      acid snd i = loopAt 1 $ chop 16 $ s snd # n i
+      acid2 snd i = loopAt 2 $ chop 32 $ s snd # n i
+  -- kick
+  d1 $ arrange
+    [ (0, 48, s "acidwhbd*4")
+    , (56, 64, s "acidwhbd*4" # lpf (range 200 8000 $ slow 8 saw))
+    , (64, 120, s "acidwhbd*4")
+    ] # gain 1
+  -- rumble: the long low tail between the kicks
+  d2 $ arrange
+    [ (8, 48, s "[~ acidrumblerb]*4" # n "<0 1>")
+    , (64, 112, s "[~ acidrumblerb]*4" # n "<0 1>")
+    ] # gain 0.75 # cut 2
+  -- hats
+  d3 $ arrange
+    [ (8, 16, s "[~ acidwhhh]*4")
+    , (16, 48, s "acidwhhh*16" # n (irand 4) # gain (range 0.7 0.95 rand))
+    , (64, 112, s "acidwhhh*16" # n (irand 4) # gain (range 0.75 1 rand))
+    , (112, 124, s "[~ acidwhhh]*4")
+    ] # cut 3
+  d4 $ arrange
+    [ (32, 48, s "[~ acidwhoh]*4" # n "<0 2>" # gain 0.75)
+    , (64, 112, s "[~ acidwhoh]*4" # n "<0 1 2 3>" # gain 0.85)
+    ] # cut 3
+  -- clap and snare
+  d5 $ arrange
+    [ (16, 48, s "~ acidwhcp ~ acidwhcp" # n "<0 0 0 1>")
+    , (64, 112, s "~ acidwhcp ~ [acidwhcp acidwhcp?]" # n "<0 1>")
+    , (56, 64, s "acidwhsd*<4 4 8 8 16 16 32 32>" # gain (range 0.6 1 $ slow 8 saw) # lpf (range 1500 9000 $ slow 8 saw))
+    ]
+  -- percussion
+  d6 $ arrange
+    [ (32, 48, s "acidwhperc(5,16,2)" # n (irand 3) # gain 0.8 # pan rand)
+    , (64, 112, s "[acidwhperc(5,16,2), acidwhrim(3,8,3)]" # n (irand 3) # gain 0.8 # pan rand)
+    , (96, 112, s "acidwhrd*8" # gain 0.7)
+    ]
+  -- crash on the big moments
+  d7 $ arrange
+    [ (16, 17, s "acidwhcr"), (64, 65, s "acidwhcr"), (80, 81, s "acidwhcr"), (96, 97, s "acidwhcr")
+    ] # gain 0.85
+  -- acid lines
+  d8 $ arrange
+    [ (16, 32, acid "acidwarehouse" "<0 0 0 3>" lpf 800)
+    , (32, 48, acid "acidwarehouse" "<1 1 4 1>" # lpf (range 800 6000 $ slow 16 sine))
+    , (96, 112, acid2 "acidwarehouse" 6)
+    , (112, 128, acid "acidwarehouse" 0 # lpf (range 6000 300 $ slow 16 saw))
+    ]
+  d9 $ arrange
+    [ (64, 96, acid "acidscreamer" "<4 4 5 4 4 4 5 2>" # gain 0.85)
+    , (48, 56, acid "aciddub" "<3 3 5 5>" # room 0.4 # size 0.8 # orbit 1)
+    ]
+  -- minor stabs on the off-beats, with an echo
+  d10 $ arrange
+    [ (32, 48, struct "<[~ t ~ ~ ~ t ~ ~] [~ ~ t ~ ~ t ~ t]>" $ s "technostab")
+    , (80, 96, struct "[~ t ~ t ~ t ~ ~]" $ s "technostab" # note "<0 0 -2 -4>")
+    ] # gain 0.8 # delay 0.35 # delaytime 0.375 # delayfeedback 0.45 # orbit 1
+  -- breakdown chords and a metal hit at each section
+  d11 $ arrange
+    [ (48, 64, note "<c af4 bf4 g4>" # s "hoover" # n 0 # legato 1 # gain 0.75
+               # lpf (range 400 5000 $ slow 16 saw) # room 0.5 # size 0.9 # orbit 1)
+    , (112, 128, note "<c ~ af4 ~>" # s "hoover" # n 0 # legato 2 # gain 0.6 # room 0.6 # size 0.9 # orbit 1)
+    ]
+  d12 $ arrange
+    [ (32, 33, s "fmmetal" # n 0), (48, 49, s "fmmetal" # n 1), (64, 65, s "fmmetal" # n 0)
+    , (96, 97, s "fmmetal" # n 1), (112, 113, s "fmmetal" # n 0)
+    ] # gain 0.8 # room 0.4 # orbit 1
+
+-- -------------------------------------------------------------- playing live
+-- Want to perform it instead? Any line below replaces one layer of the arrangement.
+
+-- Push the acid filter by hand
+d8 $ loopAt 1 $ chop 16 $ s "acidwarehouse" # n "<0 1>" # lpf (range 400 7000 $ slow 4 sine) # resonance 0.2
+
+-- Stutter the screamer every fourth bar
+d9 $ every 4 (ply 2) $ loopAt 1 $ chop 16 $ s "acidscreamer" # n 4
+
+-- Back to the arrangement: run the big block again (it starts from the top).
+
+hush

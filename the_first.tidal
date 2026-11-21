@@ -1,0 +1,23 @@
+setcps (130/60/4)
+
+let kickSnd    = s "epopbd" # gain 1
+    hatSnd     = s "epophh" # gain 1
+    clapSnd    = s "epopcp" # gain 1
+    sawLead    = s "sawlead" # gain 0.8 # lpf (range 1000 1200 rand)
+    
+
+d1 $ struct "t*4" kickSnd
+d2 $ struct "t*8" hatSnd
+d2 $ struct "t*16" hatSnd # n (irand 4) # gain (range 0.7 1 rand)
+d3 $ struct "t*2" clapSnd
+
+d4 $ note "0 <3 5> 7 <5 8>" # sawLead # cut 1
+
+-- suggestion: drums · C minor · 4 bars · kit acidwh
+d1 $ s "[acidwhbd*4, acidwhhh*16]"
+
+-- suggestion: drums · C minor · 4 bars · kit acidwh
+d1 $ s "[acidwhbd*4, [~ acidwhsd]*2, acidwhhh*16]"
+
+
+hush

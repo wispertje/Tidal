@@ -1,0 +1,124 @@
+-- ============================================================================
+-- NEON HARBOUR  ·  synth pop  ·  118 bpm  ·  C minor  ·  112 cycles (≈ 3:50)
+-- ============================================================================
+-- Every sound comes from the Tidepool factory presets (Synth ▸ Render all factory presets to samples):
+--   Drums  "Synth pop · gated 80s" kit (gatedbd, gatedsd, gatedcp, gatedhh, gatedoh, toms, gatedcr, gatedsh)
+--   Synth  poppad, popbass, poplead, strings80s, popchoir
+--   FM     fmpopep, fmpopbell, fmpopbrass, fmpopmallet
+--   Acid   seqbrightarp, seqoctbass  (synth pop sequences, rendered at 118 bpm, in C)
+--
+-- 1. Run setcps.   2. Run the big "do" block: the whole song plays by itself and starts again after
+--    cycle 112.   3. hush to stop.
+--
+-- Chords, one bar each:  Cm – A♭ – E♭ – B♭
+--
+--   cycle   0  intro       sequencer arpeggio and pad on C minor
+--           8  intro 2     kick, hats, octave pulse bass
+--          16  verse       the chords start: bass, electric piano, bell counter-melody
+--          32  chorus      snare + clap, strings, lead hook, brass
+--          48  breakdown   no drums: pad, arpeggio and choir on C minor
+--          56  build       sixteenth bass, snare roll
+--          64  chorus 2    everything + mallet arpeggio
+--          80  chorus 3    + choir, bell answers the lead
+--         104  outro       the drums stop, the arpeggio and pad carry on
+
+setcps (118/60/4)
+
+
+
+do
+  setCycle 0
+  let arrange ps = seqPLoop ((0, 112, silence) : ps)
+      chords = "<c'min af4'maj ef'maj bf4'maj>" :: Pattern Note
+      roots = "<0 -4 3 -2>" :: Pattern Note
+      seqLoop snd i = loopAt 1 $ chop 16 $ s snd # n i
+  -- kick
+  d1 $ arrange
+    [ (8, 16, s "gatedbd*4" # lpf (range 300 10000 $ slow 8 saw))
+    , (16, 48, s "gatedbd*4")
+    , (56, 64, s "gatedbd*<1 1 2 2 4 4 4 8>")
+    , (64, 104, s "gatedbd*4")
+    ]
+  -- snare and clap: the big 80s backbeat
+  d2 $ arrange
+    [ (16, 32, s "~ gatedsd ~ gatedsd" # n "<0 1>" # gain 0.9)
+    , (32, 48, s "~ [gatedsd, gatedcp] ~ [gatedsd, gatedcp]" # n "<0 1>")
+    , (56, 64, s "gatedsd*<4 4 8 8 8 16 16 32>" # gain (range 0.55 1 $ slow 8 saw))
+    , (64, 104, s "~ [gatedsd, gatedcp] ~ [gatedsd, gatedcp]" # n "<0 1>")
+    ]
+  -- hats
+  d3 $ arrange
+    [ (8, 16, s "[~ gatedhh]*4")
+    , (16, 104, s "gatedhh*8" # n (irand 4) # gain (range 0.65 0.85 rand))
+    , (104, 110, s "[~ gatedhh]*4" # gain 0.75)
+    ] # cut 1
+  d4 $ arrange
+    [ (32, 48, s "~ ~ ~ gatedoh" # n (irand 4))
+    , (64, 104, s "[~ gatedoh]*2" # n (irand 4))
+    ] # cut 1 # gain 0.75
+  -- tom fills, shaker, crashes
+  d5 $ arrange
+    [ (31, 32, s "~ ~ [gatedht gatedmt] [gatedlt gatedlt]")
+    , (47, 48, s "~ ~ ~ [gatedht gatedmt gatedlt gatedlt]")
+    , (63, 64, s "[gatedht gatedht] [gatedmt gatedmt] [gatedlt gatedlt] [gatedlt gatedlt gatedlt gatedlt]")
+    , (79, 80, s "~ ~ [gatedht gatedmt] [gatedlt gatedlt]")
+    , (48, 56, s "gatedsh*8" # n (irand 4) # gain 0.7 # pan sine)
+    , (16, 17, s "gatedcr"), (32, 33, s "gatedcr"), (64, 65, s "gatedcr"), (80, 81, s "gatedcr")
+    ] # room 0.2 # orbit 1
+  -- bass
+  d6 $ arrange
+    [ (8, 16, seqLoop "seqoctbass" 0 # gain 0.9)
+    , (16, 48, note (roots + "[0 12]*4") # s "popbass" # n 1 # cut 2)
+    , (56, 64, seqLoop "seqoctbass" 1 # lpf (range 300 4000 $ slow 8 saw))
+    , (64, 104, note (roots + "[0 0 12 0]*2") # s "popbass" # n 1 # cut 2)
+    ]
+  -- pad: C minor in the intro and breakdown, the chords elsewhere
+  d7 $ arrange
+    [ (0, 16, note "c'min" # lpf (range 500 4000 $ slow 16 saw))
+    , (16, 48, note chords)
+    , (48, 64, note "c'min" # lpf (range 4000 600 $ slow 16 sine))
+    , (64, 112, note chords)
+    ] # s "poppad" # n 0 # legato 1.05 # gain 0.7 # room 0.3 # size 0.7 # orbit 1
+  -- the sequencer arpeggio (Tidepool Acid, pattern D = C minor arpeggio)
+  d8 $ arrange
+    [ (0, 16, seqLoop "seqbrightarp" 3 # lpf (range 800 9000 $ slow 16 saw))
+    , (48, 64, seqLoop "seqbrightarp" 3)
+    , (96, 112, seqLoop "seqbrightarp" 3 # lpf (range 9000 500 $ slow 16 saw))
+    ] # gain 0.7 # pan (slow 4 sine) # orbit 1
+  -- electric piano comping in the verse and chorus
+  d9 $ arrange
+    [ (16, 48, struct "t ~ ~ t ~ ~ t ~" $ note chords)
+    , (64, 104, struct "t ~ ~ t ~ ~ t ~" $ note chords)
+    ] # s "fmpopep" # n 0 # legato 0.6 # gain 0.75
+  -- strings and brass in the chorus
+  d10 $ arrange
+    [ (32, 48, note chords # s "strings80s" # n 0 # legato 1 # gain 0.65)
+    , (64, 104, note chords # s "strings80s" # n 0 # legato 1 # gain 0.7)
+    , (40, 48, struct "~ t ~ [~ t]" $ note chords # s "fmpopbrass" # n 0 # gain 0.8)
+    , (64, 96, every 2 (const silence) $ struct "~ t ~ [~ t]" $ note chords # s "fmpopbrass" # n 0 # gain 0.8)
+    ] # orbit 1
+  -- melodies: bell counter-melody in the verse, the hook in the choruses
+  d11 $ arrange
+    [ (16, 32, note "<[c ~ ef g] [~ c ~ ef] [g ~ bf g] [f ~ d ~]>" # s "fmpopbell" # n 0 # gain 0.75)
+    , (32, 48, note "<[g@2 f ef] [ef@2 c ~] [g@2 bf af] [f@3 ~]>" # s "poplead" # n 0 # legato 1)
+    , (64, 96, note "<[g@2 f ef] [ef@2 c ~] [g@2 bf af] [f@3 ~]>" # s "poplead" # n 0 # legato 1)
+    , (80, 96, note "<[~ ~ ~ g] [~ ~ ~ c6] [~ ~ ~ bf] [~ ~ d6 f6]>" # s "fmpopbell" # n 0 # gain 0.7)
+    , (104, 112, note "<[c ~ ef g] [~ c ~ ef] [g ~ bf g] [f ~ d ~]>" # s "fmpopbell" # n 0 # gain 0.6)
+    ] # room 0.25 # delay 0.25 # delaytime 0.375 # delayfeedback 0.35 # orbit 1
+  -- mallet arpeggio and choir
+  d12 $ arrange
+    [ (64, 104, arp "<up updown>" $ note "<c'min'8 af4'maj'8 ef'maj'8 bf4'maj'8>" # s "fmpopmallet" # n 0 # gain 0.65 # pan (fast 2 sine))
+    , (48, 64, note "<c'min c'min af4'maj bf4'maj>" # s "popchoir" # n 0 # legato 1 # gain 0.6)
+    , (80, 96, note chords # s "popchoir" # n 0 # legato 1 # gain 0.55)
+    ] # room 0.35 # size 0.8 # orbit 1
+
+-- -------------------------------------------------------------- playing live
+-- Any line below replaces one layer of the arrangement; run the big block again to go back.
+
+-- A half-time breakdown
+d1 $ s "gatedbd ~ ~ ~ ~ ~ gatedbd ~"
+
+-- Filter the whole pad up and down
+d7 $ note "<c'min af4'maj ef'maj bf4'maj>" # s "poppad" # n 0 # legato 1.05 # lpf (range 400 6000 $ slow 8 sine) # orbit 1
+
+hush
